@@ -1,21 +1,21 @@
 FROM node:18-alpine
 
+# Run as non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 
 # Copy package files first for better layer caching
-COPY package*.json ./
+COPY --chown=appuser:appgroup package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy application source
-COPY src/ ./src/
+COPY --chown=appuser:appgroup src/ ./src/
 
-# Expose the default application port
-EXPOSE 3000
-
-# Run as non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
+
+EXPOSE 3000
 
 CMD ["node", "src/server.js"]

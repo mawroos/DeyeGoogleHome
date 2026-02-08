@@ -13,6 +13,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Verify .env file exists
+        run: |
+          if (-not (Test-Path ".env")) {
+            Write-Error ".env file not found. Create it on the runner from .env.example before deploying."
+            exit 1
+          }
+
       - name: Build Docker image
         run: docker build -t deye-google-home:latest .
 
