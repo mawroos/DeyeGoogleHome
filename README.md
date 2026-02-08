@@ -192,7 +192,22 @@ Your Server (this app)
 - Use strong, unique values for `OAUTH_CLIENT_SECRET`
 - The Deye password is hashed using SHA256 before sending to the API
 - Access tokens are managed automatically and renewed as needed
-- In production, use a proper database for OAuth token storage instead of in-memory storage
+
+### Production Deployment Warning
+
+⚠️ **IMPORTANT**: The current OAuth implementation uses in-memory token storage for simplicity. Before deploying to production:
+
+1. **Replace In-Memory Storage**: Implement persistent storage for OAuth tokens using a database (Redis, PostgreSQL, MongoDB, etc.)
+2. **Implement User Authentication**: The current OAuth flow auto-approves authorization requests. You must implement:
+   - A proper login page to authenticate users
+   - A consent screen showing what permissions are being granted
+   - User approval flow before issuing authorization codes
+3. **Enable HTTPS**: Google Home requires HTTPS endpoints in production
+4. **Use Session Management**: Implement proper session handling for user authentication
+5. **Add Rate Limiting**: Protect your endpoints from abuse
+6. **Monitor Token Expiry**: Implement proper token cleanup and renewal strategies
+
+The current implementation is designed for development and testing purposes only.
 
 ## Troubleshooting
 
@@ -205,11 +220,13 @@ Your Server (this app)
 - Check that devices are visible in Deye Cloud app
 - Try unlinking and relinking your account in Google Home
 - Check server logs for any errors during SYNC
+- Verify device mapping in `mapDeyeDeviceToGoogle()` supports your device type
 
 ### Command Execution Failures
 - Verify device IDs are correct
 - Check device status in Deye Cloud app
 - Review server logs for API errors
+- **Important**: Work mode values (0/1) may vary by device type - consult Deye API documentation for your specific device model
 
 ## Development
 

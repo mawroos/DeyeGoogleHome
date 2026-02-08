@@ -6,7 +6,9 @@ class OAuthServer {
     this.clientSecret = clientSecret;
     
     // In-memory storage for tokens and authorization codes
-    // In production, use a proper database
+    // WARNING: In production, replace with a proper database (Redis, PostgreSQL, etc.)
+    // In-memory storage will lose all tokens on server restart
+    // and won't work correctly with multiple server instances
     this.authorizationCodes = new Map();
     this.accessTokens = new Map();
     this.refreshTokens = new Map();
@@ -36,8 +38,11 @@ class OAuthServer {
       return res.status(400).send('Invalid response_type');
     }
 
-    // In a real implementation, show a login page here
-    // For simplicity, auto-approve and generate authorization code
+    // IMPORTANT: In a production implementation, this endpoint should:
+    // 1. Display a login page to authenticate the user
+    // 2. Show a consent screen explaining what permissions are being granted
+    // 3. Only generate the authorization code after user approval
+    // This simplified version auto-approves for development/testing only
     const authCode = this.generateToken();
     
     // Store authorization code with redirect_uri

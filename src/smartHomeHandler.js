@@ -110,20 +110,26 @@ class GoogleSmartHomeHandler {
 
         if (deviceStatus) {
           // Map device status to Google format
-          // Default state - assume online and on if we have status data
+          // Start with conservative defaults
           deviceStates[deviceId] = {
             online: true,
-            on: true,
+            on: false,  // Default to off to avoid unexpected device activation
             status: 'SUCCESS'
           };
 
-          // Add additional state based on device data if available
+          // Determine actual state from device data if available
           if (deviceStatus.data) {
-            // Check if device appears to be off/inactive
+            // Check if device appears to be on/active
+            if (deviceStatus.data.status === 'online' || 
+                deviceStatus.data.status === 1 ||
+                (deviceStatus.data.power && deviceStatus.data.power > 0)) {
+              deviceStates[deviceId].on = true;
+            }
+            
+            // Check if device is offline
             if (deviceStatus.data.status === 'offline' || 
-                deviceStatus.data.status === 0 ||
-                deviceStatus.data.power === 0) {
-              deviceStates[deviceId].on = false;
+                deviceStatus.data.status === 0) {
+              deviceStates[deviceId].online = false;
             }
           }
         } else {
@@ -177,8 +183,11 @@ class GoogleSmartHomeHandler {
             for (const deviceId of deviceIds) {
               try {
                 // Set work mode based on on/off state
-                // Mode 0 = off, Mode 1 = on (example values, may need adjustment)
-                await this.deyeClient.setWorkMode(deviceId, turnOn ? 1 : 0);
+                // NOTE: Work mode values may vary by device type
+                // Consult Deye API documentation for your specific device model
+                // Common values: 0 = off/standby, 1 = on/active
+                const workMode = turnOn ? 1 : 0;
+                await this.deyeClient.setWorkMode(deviceId, workMode);
                 
                 commandResults.push({
                   ids: [deviceId],
