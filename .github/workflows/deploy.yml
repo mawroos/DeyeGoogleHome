@@ -1,0 +1,51 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: [self-hosted, Windows]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t deye-google-home:latest .
+
+      - name: Stop existing container
+        run: docker stop deye-google-home 2>$null; docker rm deye-google-home 2>$null
+        continue-on-error: true
+
+      - name: Deploy container
+        run: |
+          docker run -d `
+            --name deye-google-home `
+            --restart unless-stopped `
+            --env-file .env `
+            -p ${{ vars.PORT || '3000' }}:3000 `
+            deye-google-home:latest
+
+      - name: Verify deployment
+        run: |
+          Start-Sleep -Seconds 5
+          try {
+            $response = Invoke-WebRequest -Uri "http://localhost:${{ vars.PORT || '3000' }}/health" -UseBasicParsing -TimeoutSec 10
+            if ($response.StatusCode -eq 200) {
+              Write-Host "Deployment verified successfully"
+            } else {
+              Write-Error "Health check returned status $($response.StatusCode)"
+              exit 1
+            }
+          } catch {
+            Write-Warning "Health check endpoint not available - container logs:"
+            docker logs deye-google-home
+            exit 1
+          }
+
+      - name: Clean up old images
+        run: docker image prune -f
+        continue-on-error: true
