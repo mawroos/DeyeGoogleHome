@@ -84,7 +84,7 @@ app.post('/fulfillment', fulfillmentLimiter, oauthServer.authenticateMiddleware(
 });
 
 // Test endpoint to verify Deye connection (for development)
-app.get('/test/devices', async (req, res) => {
+app.get('/test/devices', oauthLimiter, async (req, res) => {
   try {
     const devices = await deyeClient.getDeviceList();
     res.json({
@@ -100,7 +100,7 @@ app.get('/test/devices', async (req, res) => {
 });
 
 // Test endpoint to verify authentication (for development)
-app.get('/test/auth', async (req, res) => {
+app.get('/test/auth', oauthLimiter, async (req, res) => {
   try {
     const token = await deyeClient.authenticate();
     res.json({
