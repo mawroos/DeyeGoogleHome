@@ -1,0 +1,62 @@
+name: Deploy to Local Docker
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create .env file from secrets
+        run: |
+          @"
+          DEYE_APP_ID=${{ secrets.DEYE_APP_ID }}
+          DEYE_APP_SECRET=${{ secrets.DEYE_APP_SECRET }}
+          DEYE_EMAIL=${{ secrets.DEYE_EMAIL }}
+          DEYE_PASSWORD=${{ secrets.DEYE_PASSWORD }}
+          DEYE_API_BASE_URL=${{ secrets.DEYE_API_BASE_URL }}
+          OAUTH_CLIENT_ID=${{ secrets.OAUTH_CLIENT_ID }}
+          OAUTH_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
+          PORT=${{ secrets.PORT }}
+          "@ | Set-Content -Path .env
+
+      - name: Build and deploy with Docker Compose
+        run: |
+          docker compose down --remove-orphans
+          docker compose build --no-cache
+          docker compose up -d
+
+      - name: Wait for service to be healthy
+        run: |
+          $maxRetries = 10
+          $delay = 5
+          for ($i = 1; $i -le $maxRetries; $i++) {
+            try {
+              $port = if ("${{ secrets.PORT }}") { "${{ secrets.PORT }}" } else { "3000" }
+              $response = Invoke-WebRequest -Uri "http://localhost:$port/" -UseBasicParsing -TimeoutSec 5
+              if ($response.StatusCode -eq 200) {
+                Write-Host "Service is healthy (attempt $i)"
+                exit 0
+              }
+            } catch {
+              Write-Host "Waiting for service to start (attempt $i/$maxRetries)..."
+            }
+            Start-Sleep -Seconds $delay
+          }
+          Write-Error "Service failed to become healthy after $maxRetries attempts"
+          exit 1
+
+      - name: Show running containers
+        if: always()
+        run: docker ps -a --filter "name=deye-google-home"
