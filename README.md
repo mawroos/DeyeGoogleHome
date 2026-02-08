@@ -10,6 +10,7 @@ A Google Home (Google Assistant) integration for Deye Cloud devices using the of
 - **Device Sync**: Automatically discover and sync all your Deye devices
 - **Real-time Status**: Query and monitor device status through Google Home
 - **Device Control**: Turn devices on/off and control settings via voice commands
+- **Rate Limiting**: Built-in protection against API abuse with configurable rate limits
 
 ## Prerequisites
 
@@ -204,7 +205,7 @@ Your Server (this app)
    - User approval flow before issuing authorization codes
 3. **Enable HTTPS**: Google Home requires HTTPS endpoints in production
 4. **Use Session Management**: Implement proper session handling for user authentication
-5. **Add Rate Limiting**: Protect your endpoints from abuse
+5. **Review Rate Limiting**: The default rate limits (100 OAuth requests per 15 min, 60 fulfillment requests per minute) may need adjustment based on your usage patterns
 6. **Monitor Token Expiry**: Implement proper token cleanup and renewal strategies
 
 The current implementation is designed for development and testing purposes only.

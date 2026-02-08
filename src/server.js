@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const DeyeCloudClient = require('./deyeClient');
 const GoogleSmartHomeHandler = require('./smartHomeHandler');
 const OAuthServer = require('./oauthServer');
@@ -10,6 +11,24 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting middleware for OAuth endpoints
+const oauthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiting for fulfillment endpoint
+const fulfillmentLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // Limit each IP to 60 requests per minute
+  message: 'Too many requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Initialize Deye Cloud Client
 const deyeClient = new DeyeCloudClient(
@@ -39,16 +58,16 @@ app.get('/', (req, res) => {
 });
 
 // OAuth endpoints for Google Home account linking
-app.get('/auth/authorize', (req, res) => {
+app.get('/auth/authorize', oauthLimiter, (req, res) => {
   oauthServer.handleAuthorize(req, res);
 });
 
-app.post('/auth/token', (req, res) => {
+app.post('/auth/token', oauthLimiter, (req, res) => {
   oauthServer.handleToken(req, res);
 });
 
 // Google Smart Home fulfillment endpoint
-app.post('/fulfillment', oauthServer.authenticateMiddleware(), async (req, res) => {
+app.post('/fulfillment', fulfillmentLimiter, oauthServer.authenticateMiddleware(), async (req, res) => {
   try {
     const response = await smartHomeHandler.handleRequest(req.body);
     res.json(response);
